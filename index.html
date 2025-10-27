@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Marcador Judo</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #111;
+  text-align: center;
+  user-select: none;
+}
+
+/* Secciones */
+#setup, #scoreboard, #winnerScreen {
+  padding: 20px;
+}
+
+/* Entrada */
+.input-box {
+  margin: 12px;
+}
+input, select {
+  font-size: 18px;
+  padding: 8px;
+}
+button {
+  padding: 12px 18px;
+  font-size: 20px;
+  cursor: pointer;
+  margin: 6px;
+}
+
+/* Marcador */
+.score-half {
+  padding: 35px 0;
+}
+.white-side {
+  background: white;
+  color: black;
+}
+.blue-side {
+  background: #003b8e;
+  color: #ffeb3b;
+}
+.name {
+  font-size: 42px;
+  font-weight: bold;
+}
+.club {
+  font-size: 68px;
+  font-weight: bold;
+  margin: 15px 0;
+}
+.score {
+  font-size: 140px;
+  font-weight: bold;
+}
+.type {
+  font-size: 28px;
+  margin-top: 10px;
+  color: #00ff62;
+}
+
+.controls {
+  background: #222;
+  padding: 20px;
+}
+
+/* IPPON */
+.ippon-text {
+  font-size: 80px;
+  font-weight: bold;
+  margin-top: 20px;
+  display: none;
+}
+
+/* Winner */
+#winnerScreen {
+  width: 100vw;
+  height: 100vh;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.winnerText {
+  font-size: 90px;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<!-- Setup -->
+<div id="setup">
+  <h1>Configurar Combate</h1>
+
+  <div class="input-box">
+    Nombre Blanco:<br>
+    <input id="nameWhite" type="text">
+  </div>
+
+  <div class="input-box">
+    Club Blanco:<br>
+    <input id="clubWhite" type="text">
+  </div>
+
+  <div class="input-box">
+    Nombre Azul:<br>
+    <input id="nameBlue" type="text">
+  </div>
+
+  <div class="input-box">
+    Club Azul:<br>
+    <input id="clubBlue" type="text">
+  </div>
+
+  <div class="input-box">
+    Tipo de combate:<br>
+    <select id="fightType">
+      <option>Quarters</option>
+      <option>Semi</option>
+      <option>Final</option>
+      <option>Repechaje</option>
+      <option>Bronze</option>
+    </select>
+  </div>
+
+  <button onclick="startFight()">Iniciar combate</button>
+</div>
+
+<!-- Scoreboard -->
+<div id="scoreboard" style="display:none;">
+
+  <!-- Blanco -->
+  <div class="score-half white-side">
+    <div class="name" id="displayNameWhite"></div>
+    <div class="club" id="displayClubWhite"></div>
+    <div class="score" id="scoreWhite">0</div>
+    <div class="type" id="displayFightTypeWhite"></div>
+    <div class="ippon-text" id="ipponWhite">IPPON</div>
+  </div>
+
+  <!-- Azul -->
+  <div class="score-half blue-side">
+    <div class="name" id="displayNameBlue"></div>
+    <div class="club" id="displayClubBlue"></div>
+    <div class="score" id="scoreBlue">0</div>
+    <div class="type" id="displayFightTypeBlue"></div>
+    <div class="ippon-text" id="ipponBlue">IPPON</div>
+  </div>
+
+  <div class="controls">
+    <h3>Controles Blanco</h3>
+    <button onclick="addWazari('white')">+WAZARI</button>
+    <button onclick="removeWazari('white')">-WAZARI</button>
+    <button onclick="ippon('white')">IPPON</button>
+
+    <h3>Controles Azul</h3>
+    <button onclick="addWazari('blue')">+WAZARI</button>
+    <button onclick="removeWazari('blue')">-WAZARI</button>
+    <button onclick="ippon('blue')">IPPON</button>
+
+    <br>
+    <button id="announceWinnerBtn" onclick="announceWinner()" style="display:none;">Anunciar Ganador</button>
+  </div>
+</div>
+
+<!-- Winner Screen -->
+<div id="winnerScreen"></div>
+
+<script>
+let scoreWhite = 0;
+let scoreBlue = 0;
+let winner = null;
+
+function formatName(name) {
+  const parts = name.trim().split(" ");
+  const apellido = parts[parts.length - 1].toUpperCase();
+  const inicial = parts[0].charAt(0).toUpperCase();
+  return `${apellido} ${inicial}.`;
+}
+function abbrClub(club) {
+  return club.trim().substring(0,3).toUpperCase();
+}
+
+function disableControls(disable) {
+  document.querySelectorAll(".controls button").forEach(btn=>{
+    if(btn.id !== "announceWinnerBtn") btn.disabled = disable;
+  });
+}
+
+function updateScores() {
+  document.getElementById("scoreWhite").innerText = scoreWhite;
+  document.getElementById("scoreBlue").innerText = scoreBlue;
+}
+
+function startFight() {
+  document.getElementById("displayNameWhite").innerText = formatName(nameWhite.value);
+  document.getElementById("displayNameBlue").innerText = formatName(nameBlue.value);
+  document.getElementById("displayClubWhite").innerText = abbrClub(clubWhite.value);
+  document.getElementById("displayClubBlue").innerText = abbrClub(clubBlue.value);
+  document.getElementById("displayFightTypeWhite").innerText = fightType.value.toUpperCase();
+  document.getElementById("displayFightTypeBlue").innerText = fightType.value.toUpperCase();
+
+  setup.style.display = "none";
+  scoreboard.style.display = "block";
+}
+
+function addWazari(color) {
+  if(color === "white") scoreWhite++;
+  else scoreBlue++;
+  updateScores();
+}
+
+function removeWazari(color) {
+  if(color === "white" && scoreWhite>0) scoreWhite--;
+  if(color === "blue" && scoreBlue>0) scoreBlue--;
+  updateScores();
+}
+
+function ippon(color) {
+  if(color === "white"){
+    ipponWhite.style.display = "block";
+    winner = "white";
+  } else {
+    ipponBlue.style.display = "block";
+    winner = "blue";
+  }
+  disableControls(true);
+  document.getElementById("announceWinnerBtn").style.display = "inline-block";
+}
+
+function announceWinner() {
+  scoreboard.style.display = "none";
+  const winnerScreen = document.getElementById("winnerScreen");
+  const winnerName = (winner === "white") ? displayNameWhite.innerText : displayNameBlue.innerText;
+
+  if(winner === "white"){
+    winnerScreen.style.background = "white";
+    winnerScreen.innerHTML = `<div class="winnerText" style="color:black;">WINNER: ${winnerName}</div>`;
+  } else {
+    winnerScreen.style.background = "#003b8e";
+    winnerScreen.innerHTML = `<div class="winnerText" style="color:#ffeb3b;">WINNER: ${winnerName}</div>`;
+  }
+  winnerScreen.style.display = "flex";
+}
+</script>
+
+</body>
+</html>
