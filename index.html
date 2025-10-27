@@ -3,252 +3,528 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Marcador Judo</title>
+<title>Marcador Judo - Registro y Score</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  background: #111;
-  text-align: center;
-  user-select: none;
-}
+  :root{
+    --purple: #6a0dad;
+    --blue: #003b8e;
+    --yellow: #ffeb3b;
+    --white: #ffffff;
+    --black: #000000;
+    --info-bg: #efefef;
+    --winner-green: #1aa237;
+  }
+  html,body{height:100%;margin:0;font-family: Arial, Helvetica, sans-serif;background:var(--purple);color:var(--white);-webkit-font-smoothing:antialiased;}
+  .app{max-width:1100px;margin:20px auto;padding:18px;}
+  h1{margin:0 0 10px 0}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .card{background:transparent;padding:14px;border-radius:8px;margin-bottom:12px}
+  label{display:block;margin:6px 0 4px 0;font-weight:600}
+  input[type=text], select{width:100%;padding:10px;border-radius:6px;border:0;font-size:16px}
+  button{padding:10px 14px;border-radius:8px;border:0;cursor:pointer;font-weight:700}
+  .btn-primary{background:var(--white);color:var(--purple)}
+  .btn-small{background: rgba(255,255,255,0.12); color:var(--white)}
+  .matchesCard{background:var(--white);color:var(--black);border-radius:10px;padding:14px;margin-top:12px;min-height:80px}
+  .hint-row{display:flex;gap:8px;align-items:center}
+  select.matchHint{flex:1;padding:10px;border-radius:8px;border:1px solid #ccc;font-size:16px}
+  .viewBtn{padding:10px 12px;border-radius:8px;border:0;background:var(--purple);color:var(--white);font-weight:800;cursor:pointer}
 
-/* Secciones */
-#setup, #scoreboard, #winnerScreen {
-  padding: 20px;
-}
+  /* OVERLAY (pantalla "completa" dentro de la web) */
+  #overlay {
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    background:var(--white);
+    color:var(--black);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+  }
 
-/* Entrada */
-.input-box {
-  margin: 12px;
-}
-input, select {
-  font-size: 18px;
-  padding: 8px;
-}
-button {
-  padding: 12px 18px;
-  font-size: 20px;
-  cursor: pointer;
-  margin: 6px;
-}
+  /* Score halves */
+  .score-half {
+    height:42%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:30px 60px;
+    box-sizing:border-box;
+  }
+  .white-side { background: var(--white); color:var(--black); border-bottom:1px solid #ddd; }
+  .blue-side  { background: var(--blue); color:var(--yellow); border-top:1px solid rgba(0,0,0,0.08); }
 
-/* Marcador */
-.score-half {
-  padding: 35px 0;
-}
-.white-side {
-  background: white;
-  color: black;
-}
-.blue-side {
-  background: #003b8e;
-  color: #ffeb3b;
-}
-.name {
-  font-size: 42px;
-  font-weight: bold;
-}
-.club {
-  font-size: 68px;
-  font-weight: bold;
-  margin: 15px 0;
-}
-.score {
-  font-size: 140px;
-  font-weight: bold;
-}
-.type {
-  font-size: 28px;
-  margin-top: 10px;
-  color: #00ff62;
-}
+  .fighterInfo { display:flex;flex-direction:column; max-width:65% }
+  .name { font-size:48px; font-weight:800; letter-spacing:1px; }
+  .club { font-size:24px; margin-top:8px; opacity:0.95 }
+  .score { font-size:110px; font-weight:900; }
+  .type { font-size:20px; color:#00c05a; margin-top:6px; }
 
-.controls {
-  background: #222;
-  padding: 20px;
-}
+  /* IPPON text style */
+  .ippon-text { display:none; font-size:80px; font-weight:900; margin-top:10px; }
 
-/* IPPON */
-.ippon-text {
-  font-size: 80px;
-  font-weight: bold;
-  margin-top: 20px;
-  display: none;
-}
+  /* Controls bar */
+  #controlsBar {
+    height:16%;
+    background:#111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    padding:10px;
+    box-sizing:border-box;
+  }
+  #controlsBar button{padding:12px 16px;font-size:16px;border-radius:8px;border:0;cursor:pointer}
+  .btn-ippon { background:#d32f2f;color:#fff }
+  .btn-waza  { background:#ffa000;color:#000 }
+  .btn-minus { background:#e0e0e0;color:#000 }
+  .btn-announce { background:#222;color:#fff }
+  .btn-back { background:#777;color:#fff }
 
-/* Winner */
-#winnerScreen {
-  width: 100vw;
-  height: 100vh;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-}
-.winnerText {
-  font-size: 90px;
-  font-weight: bold;
-}
+  /* Winner screen overlay inside overlay */
+  #winnerScreen{
+    display:none;
+    position:absolute;
+    inset:0;
+    align-items:center;
+    justify-content:center;
+    z-index:10000;
+    flex-direction:column;
+  }
+  .winnerText{font-size:84px;font-weight:900;}
+
+  /* responsive */
+  @media (max-width:900px){
+    .name{font-size:34px}
+    .score{font-size:64px}
+    .score-half{padding:16px}
+    .fighterInfo{max-width:60%}
+    #controlsBar{flex-wrap:wrap;height:auto;padding:16px}
+  }
 </style>
 </head>
 <body>
+  <div class="app">
+    <h1>Marcador Judo — Registro y Score</h1>
 
-<!-- Setup -->
-<div id="setup">
-  <h1>Configurar Combate</h1>
+    <!-- Formulario agregar combate -->
+    <div class="card">
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <label>Nombre Blanco</label>
+          <input id="whiteNameInput" type="text" placeholder="Ej: Benja Badilla">
+        </div>
+        <div style="width:160px;min-width:120px">
+          <label>Club Blanco</label>
+          <input id="whiteClubInput" type="text" placeholder="Club">
+        </div>
 
-  <div class="input-box">
-    Nombre Blanco:<br>
-    <input id="nameWhite" type="text">
+        <div style="flex:1;min-width:220px">
+          <label>Nombre Azul</label>
+          <input id="blueNameInput" type="text" placeholder="Ej: Ignacio Garcia">
+        </div>
+        <div style="width:160px;min-width:120px">
+          <label>Club Azul</label>
+          <input id="blueClubInput" type="text" placeholder="Club">
+        </div>
+
+        <div style="width:220px;min-width:160px">
+          <label>Tipo de combate</label>
+          <select id="fightTypeInput">
+            <option value="QUARTERS">QUARTERS-FINALS</option>
+            <option value="SEMI">SEMI-FINALS</option>
+            <option value="FINAL">FINAL</option>
+            <option value="REPECHAGE">REPECHAGE</option>
+            <option value="BRONZE">BRONZE</option>
+            <option value="ROUNDROBIN">ROUND-ROBIN</option>
+          </select>
+        </div>
+
+        <div style="align-self:end">
+          <button id="addMatchBtn" class="btn-primary">+ Nuevo combate</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selección de categoría + hint -->
+    <div class="matchesCard">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div style="min-width:140px">
+          <label style="color:#444;margin:0 0 6px 0">Categoría</label>
+          <select id="categorySelect" style="padding:10px;border-radius:8px">
+            <option value="">-- Seleccionar categoría --</option>
+            <option value="QUARTERS">QUARTERS-FINALS</option>
+            <option value="SEMI">SEMI-FINALS</option>
+            <option value="FINAL">FINAL</option>
+            <option value="REPECHAGE">REPECHAGE</option>
+            <option value="BRONZE">BRONZE</option>
+            <option value="ROUNDROBIN">ROUND-ROBIN</option>
+          </select>
+        </div>
+
+        <div style="flex:1">
+          <label style="color:#444;margin:0 0 6px 0">Combates</label>
+          <div class="hint-row">
+            <select id="matchHintSelect" class="matchHint">
+              <option value="">Selecciona una categoría primero...</option>
+            </select>
+            <button id="viewFullBtn" class="viewBtn">Ver en pantalla completa</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="matchesList" style="margin-top:8px;color:#666;font-size:14px">
+        Elige una categoría para ver los combates.
+      </div>
+    </div>
+
   </div>
 
-  <div class="input-box">
-    Club Blanco:<br>
-    <input id="clubWhite" type="text">
+  <!-- Overlay marcador (simula pantalla completa dentro de la web) -->
+  <div id="overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <!-- Winner screen inside overlay -->
+    <div id="winnerScreen">
+      <div class="winnerText" id="winnerText"></div>
+      <div style="margin-top:18px">
+        <button class="btn-back" onclick="closeWinner()">Volver</button>
+      </div>
+    </div>
+
+    <!-- White half -->
+    <div id="whiteHalf" class="score-half white-side">
+      <div class="fighterInfo">
+        <div class="name" id="displayNameWhite">BADILLA B.</div>
+        <div class="club" id="displayClubWhite">(CLUB)</div>
+      </div>
+      <div>
+        <div id="displayScoreWhite" class="score">0</div>
+        <div id="ipponWhite" class="ippon-text">IPPON</div>
+      </div>
+    </div>
+
+    <!-- Blue half -->
+    <div id="blueHalf" class="score-half blue-side">
+      <div class="fighterInfo">
+        <div class="name" id="displayNameBlue">GARCIA I.</div>
+        <div class="club" id="displayClubBlue">(CLUB)</div>
+      </div>
+      <div>
+        <div id="displayScoreBlue" class="score">0</div>
+        <div id="ipponBlue" class="ippon-text">IPPON</div>
+      </div>
+    </div>
+
+    <div id="combatInfo" style="height:6%;background:var(--info-bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:#222">
+      FINAL — BADILLA B. vs GARCIA I.
+    </div>
+
+    <!-- Controls (buttons abajo) -->
+    <div id="controlsBar">
+      <!-- Blanco -->
+      <button class="btn-waza" onclick="addWazari('white')">+WAZARI Blanco</button>
+      <button class="btn-minus" onclick="removeWazari('white')">-WAZARI Blanco</button>
+      <button class="btn-ippon" onclick="doIppon('white')">IPPON Blanco</button>
+
+      <!-- Azul -->
+      <button class="btn-waza" onclick="addWazari('blue')">+WAZARI Azul</button>
+      <button class="btn-minus" onclick="removeWazari('blue')">-WAZARI Azul</button>
+      <button class="btn-ippon" onclick="doIppon('blue')">IPPON Azul</button>
+
+      <!-- Acciones -->
+      <button class="btn-announce" id="announceBtn" onclick="announceWinner()" style="margin-left:12px">Anunciar Ganador</button>
+      <button class="btn-back" onclick="closeOverlay()">Volver</button>
+    </div>
   </div>
-
-  <div class="input-box">
-    Nombre Azul:<br>
-    <input id="nameBlue" type="text">
-  </div>
-
-  <div class="input-box">
-    Club Azul:<br>
-    <input id="clubBlue" type="text">
-  </div>
-
-  <div class="input-box">
-    Tipo de combate:<br>
-    <select id="fightType">
-      <option>Quarters</option>
-      <option>Semi</option>
-      <option>Final</option>
-      <option>Repechaje</option>
-      <option>Bronze</option>
-    </select>
-  </div>
-
-  <button onclick="startFight()">Iniciar combate</button>
-</div>
-
-<!-- Scoreboard -->
-<div id="scoreboard" style="display:none;">
-
-  <!-- Blanco -->
-  <div class="score-half white-side">
-    <div class="name" id="displayNameWhite"></div>
-    <div class="club" id="displayClubWhite"></div>
-    <div class="score" id="scoreWhite">0</div>
-    <div class="type" id="displayFightTypeWhite"></div>
-    <div class="ippon-text" id="ipponWhite">IPPON</div>
-  </div>
-
-  <!-- Azul -->
-  <div class="score-half blue-side">
-    <div class="name" id="displayNameBlue"></div>
-    <div class="club" id="displayClubBlue"></div>
-    <div class="score" id="scoreBlue">0</div>
-    <div class="type" id="displayFightTypeBlue"></div>
-    <div class="ippon-text" id="ipponBlue">IPPON</div>
-  </div>
-
-  <div class="controls">
-    <h3>Controles Blanco</h3>
-    <button onclick="addWazari('white')">+WAZARI</button>
-    <button onclick="removeWazari('white')">-WAZARI</button>
-    <button onclick="ippon('white')">IPPON</button>
-
-    <h3>Controles Azul</h3>
-    <button onclick="addWazari('blue')">+WAZARI</button>
-    <button onclick="removeWazari('blue')">-WAZARI</button>
-    <button onclick="ippon('blue')">IPPON</button>
-
-    <br>
-    <button id="announceWinnerBtn" onclick="announceWinner()" style="display:none;">Anunciar Ganador</button>
-  </div>
-</div>
-
-<!-- Winner Screen -->
-<div id="winnerScreen"></div>
 
 <script>
-let scoreWhite = 0;
-let scoreBlue = 0;
-let winner = null;
+/* --- Datos en memoria --- */
+const matchesData = {
+  QUARTERS: [],
+  SEMI: [],
+  FINAL: [],
+  REPECHAGE: [],
+  BRONZE: [],
+  ROUNDROBIN: []
+};
 
-function formatName(name) {
-  const parts = name.trim().split(" ");
-  const apellido = parts[parts.length - 1].toUpperCase();
-  const inicial = parts[0].charAt(0).toUpperCase();
-  return `${apellido} ${inicial}.`;
+let currentMatch = null; // referencia al objeto del combate mostrado
+let currentCategory = "";
+
+/* --- Utilidades de formato --- */
+function formatToSurnameInitial(name){
+  name = (name||"").trim();
+  if(!name) return "";
+  const parts = name.split(/\s+/).filter(Boolean);
+  const surname = parts.length>1 ? parts[parts.length-1].toUpperCase() : parts[0].toUpperCase();
+  const initial = parts.length>0 ? (parts[0].charAt(0).toUpperCase() + ".") : "";
+  return `${surname} ${initial}`;
 }
-function abbrClub(club) {
-  return club.trim().substring(0,3).toUpperCase();
+function abbrClub(club){
+  if(!club) return "";
+  const c = club.trim().toUpperCase();
+  return c.substring(0,3);
 }
 
-function disableControls(disable) {
-  document.querySelectorAll(".controls button").forEach(btn=>{
-    if(btn.id !== "announceWinnerBtn") btn.disabled = disable;
+/* --- DOM refs --- */
+const categorySelect = document.getElementById('categorySelect');
+const matchHintSelect = document.getElementById('matchHintSelect');
+const matchesList = document.getElementById('matchesList');
+const viewFullBtn = document.getElementById('viewFullBtn');
+const addMatchBtn = document.getElementById('addMatchBtn');
+
+/* overlay elements */
+const overlay = document.getElementById('overlay');
+const whiteHalf = document.getElementById('whiteHalf');
+const blueHalf  = document.getElementById('blueHalf');
+const displayNameWhite = document.getElementById('displayNameWhite');
+const displayClubWhite = document.getElementById('displayClubWhite');
+const displayScoreWhite = document.getElementById('displayScoreWhite');
+const ipponWhite = document.getElementById('ipponWhite');
+
+const displayNameBlue = document.getElementById('displayNameBlue');
+const displayClubBlue = document.getElementById('displayClubBlue');
+const displayScoreBlue = document.getElementById('displayScoreBlue');
+const ipponBlue = document.getElementById('ipponBlue');
+
+const combatInfo = document.getElementById('combatInfo');
+const winnerScreen = document.getElementById('winnerScreen');
+const winnerText = document.getElementById('winnerText');
+
+/* --- Agregar nuevo combate --- */
+addMatchBtn.addEventListener('click', function(e){
+  e.preventDefault();
+  const wName = document.getElementById('whiteNameInput').value.trim();
+  const wClub = document.getElementById('whiteClubInput').value.trim();
+  const bName = document.getElementById('blueNameInput').value.trim();
+  const bClub = document.getElementById('blueClubInput').value.trim();
+  const type  = document.getElementById('fightTypeInput').value;
+
+  if(!wName || !bName){ alert('Completa los nombres de ambos competidores'); return; }
+
+  const match = {
+    whiteNameFull: wName,
+    whiteName: formatToSurnameInitial(wName),
+    whiteClubFull: wClub,
+    whiteClub: abbrClub(wClub),
+    blueNameFull: bName,
+    blueName: formatToSurnameInitial(bName),
+    blueClubFull: bClub,
+    blueClub: abbrClub(bClub),
+    type: type,
+    whiteScore: 0,
+    blueScore: 0,
+    whiteIppon: false,
+    blueIppon: false
+  };
+
+  matchesData[type].push(match);
+  // reset inputs
+  document.getElementById('whiteNameInput').value = "";
+  document.getElementById('whiteClubInput').value = "";
+  document.getElementById('blueNameInput').value = "";
+  document.getElementById('blueClubInput').value = "";
+  // actualizar hint si corresponde
+  if(categorySelect.value === type) populateMatchHint(type);
+  updateMatchesListText(type);
+  alert('Combate agregado a ' + type);
+});
+
+/* --- Actualizar hint y lista --- */
+categorySelect.addEventListener('change', function(){
+  const type = categorySelect.value;
+  currentCategory = type;
+  if(!type){
+    matchHintSelect.innerHTML = '<option value="">Selecciona una categoría primero...</option>';
+    matchesList.innerHTML = 'Elige una categoría para ver los combates.';
+    return;
+  }
+  populateMatchHint(type);
+  updateMatchesListText(type);
+});
+
+function populateMatchHint(type){
+  const arr = matchesData[type];
+  matchHintSelect.innerHTML = '';
+  if(!arr || arr.length === 0){
+    matchHintSelect.innerHTML = '<option value="">No hay combates en esta categoría</option>';
+    return;
+  }
+  arr.forEach((m,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.text = `${m.whiteName} (${m.whiteClub})  —  ${m.blueName} (${m.blueClub})`;
+    matchHintSelect.appendChild(opt);
   });
+  // optionally select first
+  matchHintSelect.selectedIndex = 0;
 }
 
-function updateScores() {
-  document.getElementById("scoreWhite").innerText = scoreWhite;
-  document.getElementById("scoreBlue").innerText = scoreBlue;
-}
-
-function startFight() {
-  document.getElementById("displayNameWhite").innerText = formatName(nameWhite.value);
-  document.getElementById("displayNameBlue").innerText = formatName(nameBlue.value);
-  document.getElementById("displayClubWhite").innerText = abbrClub(clubWhite.value);
-  document.getElementById("displayClubBlue").innerText = abbrClub(clubBlue.value);
-  document.getElementById("displayFightTypeWhite").innerText = fightType.value.toUpperCase();
-  document.getElementById("displayFightTypeBlue").innerText = fightType.value.toUpperCase();
-
-  setup.style.display = "none";
-  scoreboard.style.display = "block";
-}
-
-function addWazari(color) {
-  if(color === "white") scoreWhite++;
-  else scoreBlue++;
-  updateScores();
-}
-
-function removeWazari(color) {
-  if(color === "white" && scoreWhite>0) scoreWhite--;
-  if(color === "blue" && scoreBlue>0) scoreBlue--;
-  updateScores();
-}
-
-function ippon(color) {
-  if(color === "white"){
-    ipponWhite.style.display = "block";
-    winner = "white";
-  } else {
-    ipponBlue.style.display = "block";
-    winner = "blue";
+function updateMatchesListText(type){
+  const arr = matchesData[type];
+  if(!arr || arr.length === 0){
+    matchesList.innerHTML = 'No hay combates en esta categoría.';
+    return;
   }
-  disableControls(true);
-  document.getElementById("announceWinnerBtn").style.display = "inline-block";
+  let html = '<strong>Combates:</strong><br><ul style="padding-left:18px;margin:8px 0;color:#444">';
+  arr.forEach((m,i)=>{
+    html += `<li style="margin:6px 0">${m.whiteName} (${m.whiteClub}) vs ${m.blueName} (${m.blueClub})</li>`;
+  });
+  html += '</ul>';
+  matchesList.innerHTML = html;
 }
 
-function announceWinner() {
-  scoreboard.style.display = "none";
-  const winnerScreen = document.getElementById("winnerScreen");
-  const winnerName = (winner === "white") ? displayNameWhite.innerText : displayNameBlue.innerText;
+/* --- Ver combate (overlay) --- */
+viewFullBtn.addEventListener('click', function(){
+  const idx = matchHintSelect.value;
+  if(idx === "" || idx === null){ alert('Selecciona un combate'); return; }
+  viewMatch(currentCategory, parseInt(idx,10));
+});
 
-  if(winner === "white"){
-    winnerScreen.style.background = "white";
-    winnerScreen.innerHTML = `<div class="winnerText" style="color:black;">WINNER: ${winnerName}</div>`;
+function viewMatch(type, index){
+  const m = matchesData[type][index];
+  if(!m) return alert('Combate no encontrado');
+  currentMatch = m;
+  // reset winner visuals
+  resetWinnerVisuals();
+  // fill UI
+  displayNameWhite.innerText = m.whiteName;
+  displayClubWhite.innerText = m.whiteClub ? `(${m.whiteClub})` : '';
+  displayScoreWhite.innerText = m.whiteIppon ? '' : m.whiteScore;
+  ipponWhite.style.display = m.whiteIppon ? 'block' : 'none';
+
+  displayNameBlue.innerText = m.blueName;
+  displayClubBlue.innerText = m.blueClub ? `(${m.blueClub})` : '';
+  displayScoreBlue.innerText = m.blueIppon ? '' : m.blueScore;
+  ipponBlue.style.display = m.blueIppon ? 'block' : 'none';
+
+  combatInfo.innerText = `${m.type} — ${m.whiteName} vs ${m.blueName}`;
+
+  // show overlay
+  overlay.style.display = 'flex';
+  overlay.setAttribute('aria-hidden','false');
+}
+
+/* --- Controles del marcador --- */
+function addWazari(color){
+  if(!currentMatch) return;
+  if(color === 'white'){
+    if(currentMatch.whiteIppon) return;
+    currentMatch.whiteScore = Number(currentMatch.whiteScore || 0) + 1;
+    displayScoreWhite.innerText = currentMatch.whiteScore;
   } else {
-    winnerScreen.style.background = "#003b8e";
-    winnerScreen.innerHTML = `<div class="winnerText" style="color:#ffeb3b;">WINNER: ${winnerName}</div>`;
+    if(currentMatch.blueIppon) return;
+    currentMatch.blueScore = Number(currentMatch.blueScore || 0) + 1;
+    displayScoreBlue.innerText = currentMatch.blueScore;
   }
-  winnerScreen.style.display = "flex";
 }
+
+function removeWazari(color){
+  if(!currentMatch) return;
+  if(color === 'white'){
+    if(currentMatch.whiteIppon) return;
+    currentMatch.whiteScore = Number(currentMatch.whiteScore || 0) - 1;
+    if(currentMatch.whiteScore < 0) currentMatch.whiteScore = 0;
+    displayScoreWhite.innerText = currentMatch.whiteScore;
+  } else {
+    if(currentMatch.blueIppon) return;
+    currentMatch.blueScore = Number(currentMatch.blueScore || 0) - 1;
+    if(currentMatch.blueScore < 0) currentMatch.blueScore = 0;
+    displayScoreBlue.innerText = currentMatch.blueScore;
+  }
+}
+
+function doIppon(color){
+  if(!currentMatch) return;
+  if(color === 'white'){
+    currentMatch.whiteIppon = true;
+    ipponWhite.style.display = 'block';
+    displayScoreWhite.innerText = '';
+  } else {
+    currentMatch.blueIppon = true;
+    ipponBlue.style.display = 'block';
+    displayScoreBlue.innerText = '';
+  }
+  // reveal announce winner button by default (user can press announce)
+}
+
+/* --- Anunciar ganador --- */
+function announceWinner(){
+  if(!currentMatch) return;
+  // determine winner: Ippon takes precedence, else numeric compare
+  const wIppon = currentMatch.whiteIppon;
+  const bIppon = currentMatch.blueIppon;
+  let winnerSide = null;
+
+  if(wIppon && !bIppon) winnerSide = 'white';
+  else if(bIppon && !wIppon) winnerSide = 'blue';
+  else {
+    const wn = Number(currentMatch.whiteScore || 0);
+    const bn = Number(currentMatch.blueScore || 0);
+    if(wn > bn) winnerSide = 'white';
+    else if(bn > wn) winnerSide = 'blue';
+    else winnerSide = null; // empate
+  }
+
+  if(winnerSide === 'white'){
+    whiteHalf.style.backgroundColor = 'var(--winner-green)';
+    whiteHalf.style.color = '#ffffff';
+    // show winner screen overlay
+    showWinnerScreen(currentMatch.whiteName);
+  } else if(winnerSide === 'blue'){
+    blueHalf.style.backgroundColor = 'var(--winner-green)';
+    blueHalf.style.color = '#ffffff';
+    showWinnerScreen(currentMatch.blueName);
+  } else {
+    // tie
+    showWinnerScreen('EMPATE');
+  }
+}
+
+/* --- Winner screen display --- */
+function showWinnerScreen(name){
+  winnerText.innerText = name === 'EMPATE' ? 'EMPATE' : `WINNER: ${name}`;
+  // style winnerScreen based on white/blue was colored already above
+  winnerScreen.style.display = 'flex';
+  // Also hide controls (optional) - keep as is
+}
+
+/* --- Reset visuals & close overlay --- */
+function resetWinnerVisuals(){
+  // reset colors to default
+  whiteHalf.style.backgroundColor = '';
+  whiteHalf.style.color = '';
+  blueHalf.style.backgroundColor = '';
+  blueHalf.style.color = '';
+  // set original colors explicitly (in case of style reset)
+  whiteHalf.classList.add('white-side');
+  blueHalf.classList.add('blue-side');
+  // hide winnerScreen
+  winnerScreen.style.display = 'none';
+  ipponWhite.style.display = 'none';
+  ipponBlue.style.display = 'none';
+  displayScoreWhite.innerText = '0';
+  displayScoreBlue.innerText = '0';
+}
+
+/* --- Close overlay and return to list --- */
+function closeOverlay(){
+  overlay.style.display = 'none';
+  overlay.setAttribute('aria-hidden','true');
+  // keep currentMatch data in memory if you want; no changes to lists needed
+}
+
+/* --- Close winner screen --- */
+function closeWinner(){
+  winnerScreen.style.display = 'none';
+  // after showing winner you might want to also close overlay - keep overlay open so user can see colored side
+}
+
+/* --- Init: no category selected --- */
+(function init(){
+  categorySelect.value = "";
+  populateMatchHint('');
+})();
 </script>
-
 </body>
 </html>
